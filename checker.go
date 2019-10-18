@@ -2,6 +2,7 @@ package health
 
 import (
 	"sync"
+	"time"
 )
 
 // Checker is a interface used to provide an indication of application health.
@@ -24,13 +25,56 @@ type checkerItem struct {
 
 // CompositeChecker aggregate a list of Checkers
 type CompositeChecker struct {
-	checkers []checkerItem
-	info     map[string]interface{}
+	checkers           []checkerItem
+	info               map[string]interface{}
+	useCachedLastState bool
+	lastState          *lastState
+	done               chan struct{}
+}
+
+type lastState struct {
+	health Health
+	sync.RWMutex
 }
 
 // NewCompositeChecker creates a new CompositeChecker
-func NewCompositeChecker() CompositeChecker {
-	return CompositeChecker{}
+func NewCompositeChecker() *CompositeChecker {
+	return &CompositeChecker{done: make(chan struct{})}
+}
+
+// Start will start a background Ticker to call Check() in an given interval
+// Once Start() was called Check() will return the cached lastState result
+func (c *CompositeChecker) Start(interval time.Duration) {
+	if c.useCachedLastState == true {
+		return
+	}
+	ticker := time.NewTicker(interval)
+	c.useCachedLastState = true
+	lastState := lastState{health: NewHealth()}
+	c.lastState = &lastState
+
+	go func() {
+		for {
+			select {
+			case <-c.done:
+				return
+			case <-ticker.C:
+				currentHealth := c.check()
+				lastState.Lock()
+				lastState.health = currentHealth
+				lastState.Unlock()
+			}
+		}
+	}()
+}
+
+// Stop the background Ticker
+func (c *CompositeChecker) Stop() {
+	if c.useCachedLastState == false {
+		return
+	}
+	c.useCachedLastState = false
+	c.done <- struct{}{}
 }
 
 // AddInfo adds a info value to the Info map
@@ -52,6 +96,15 @@ func (c *CompositeChecker) AddChecker(name string, checker Checker) {
 // Check returns the combination of all checkers added
 // if some check is not up, the combined is marked as down
 func (c CompositeChecker) Check() Health {
+	if c.useCachedLastState {
+		c.lastState.RLock()
+		defer c.lastState.RUnlock()
+		return c.lastState.health
+	}
+	return c.check()
+}
+
+func (c CompositeChecker) check() Health {
 	health := NewHealth()
 	health.Up()
 

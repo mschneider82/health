@@ -1,6 +1,9 @@
 package health
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 type outOfServiceTestChecker struct{}
 
@@ -136,5 +139,22 @@ func TestCheckerFunc_Check(t *testing.T) {
 
 	if !h.IsUp() {
 		t.Errorf("h.IsUp() == %t, wants %t", h.IsUp(), true)
+	}
+}
+
+func Test_CompositeChecker_Start_Stop(t *testing.T) {
+	c := NewCompositeChecker()
+	c.AddChecker("upTestChecker", upTestChecker{})
+	c.AddChecker("upTestChecker", upTestChecker{})
+	c.Stop() // only for code coverage
+	c.Start(200 * time.Millisecond)
+	c.Start(200 * time.Millisecond) // only for code coverage
+	defer c.Stop()
+
+	time.Sleep(400 * time.Millisecond)
+	health := c.Check()
+
+	if !health.IsUp() {
+		t.Errorf("health.IsUp() == %t, wants %t", health.IsUp(), true)
 	}
 }
