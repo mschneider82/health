@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dimiro1/health"
+	"github.com/mschneider82/health"
 )
 
 // Checker is a checker that check a given URL

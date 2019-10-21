@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dimiro1/health"
+	"github.com/mschneider82/health"
 )
 
 func Test_NewCheckerWithTimeout(t *testing.T) {
