@@ -36,6 +36,7 @@ func (u Checker) Check() health.Health {
 	ctxWithTimeout, cancelFn := context.WithTimeout(context.Background(), u.Timeout)
 	defer cancelFn()
 	health := health.NewHealth()
+	health.AddInfo("url", u.URL)
 	body := new(bytes.Buffer)
 	req, err := http.NewRequestWithContext(ctxWithTimeout, u.Method, u.URL, body)
 	if err != nil {
