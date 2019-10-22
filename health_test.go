@@ -51,8 +51,8 @@ func Test_Health_IsUp(t *testing.T) {
 	h := NewHealth()
 	h.Up()
 
-	if h.status != up {
-		t.Errorf("NewHealth().status == %s, want %s", h.status, up)
+	if !h.IsUp() {
+		t.Errorf("NewHealth().status == %v, want %s", h.IsUp(), up)
 	}
 }
 
@@ -60,8 +60,8 @@ func Test_Health_IsDown(t *testing.T) {
 	h := NewHealth()
 	h.Down()
 
-	if h.status != down {
-		t.Errorf("NewHealth().status == %s, want %s", h.status, down)
+	if !h.IsDown() {
+		t.Errorf("NewHealth().status == %v, want %s", h.IsDown(), down)
 	}
 }
 
@@ -69,8 +69,8 @@ func Test_Health_IsOutOfService(t *testing.T) {
 	h := NewHealth()
 	h.OutOfService()
 
-	if h.status != outOfService {
-		t.Errorf("NewHealth().status == %s, want %s", h.status, outOfService)
+	if !h.IsOutOfService() {
+		t.Errorf("NewHealth().status == %v, want %s", h.IsOutOfService(), outOfService)
 	}
 }
 
@@ -98,15 +98,19 @@ func Test_Health_AddInfo(t *testing.T) {
 
 	h.AddInfo("key", "value")
 
-	_, ok := h.info["key"]
+	val, ok := h.GetInfo("key").(string)
 
 	if !ok {
 		t.Error("h.AddInfo() should add a key value to the map")
+		return
+	}
+	if val != "value" {
+		t.Errorf("h.AddInfo() expect value got %s", val)
 	}
 }
 
 func Test_Health_AddInfo_null_map(t *testing.T) {
-	h := Health{}
+	h := health{}
 
 	h.AddInfo("key", "value")
 
@@ -130,7 +134,7 @@ func Test_Health_GetInfo(t *testing.T) {
 }
 
 func Test_Health_GetInfo_null_map(t *testing.T) {
-	h := Health{}
+	h := health{}
 
 	value := h.GetInfo("key")
 

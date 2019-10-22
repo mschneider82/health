@@ -55,8 +55,6 @@ func (c CompositeChecker) Check() Health {
 	health := NewHealth()
 	health.Up()
 
-	healths := make(map[string]interface{})
-
 	type state struct {
 		h    Health
 		name string
@@ -78,10 +76,8 @@ func (c CompositeChecker) Check() Health {
 		if !s.h.IsUp() && !health.IsDown() {
 			health.Down()
 		}
-		healths[s.name] = s.h
+		health.AddInfo(s.name, s.h)
 	}
-
-	health.info = healths
 
 	// Extra Info
 	for key, value := range c.info {
