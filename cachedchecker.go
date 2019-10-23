@@ -27,7 +27,22 @@ func NewCachedChecker() CachedChecker {
 // Start will start a background Ticker to update lastState
 func (c *CachedChecker) Start(interval time.Duration) {
 	ticker := time.NewTicker(interval)
-	lastState := lastState{health: c.compositeChecker.Check().AddInfo("ts", time.Now().Format(time.RFC3339))}
+	type lastCheck struct {
+		TS   string `json:"ts"`
+		Took string `json:"took"`
+	}
+
+	check := func(t time.Time) Health {
+		currentHealth := c.compositeChecker.Check()
+		last := lastCheck{
+			TS:   t.Format(time.RFC3339),
+			Took: time.Since(t).String(),
+		}
+		currentHealth.AddInfo("lastcheck", last)
+		return currentHealth
+	}
+
+	lastState := lastState{health: check(time.Now())}
 	c.lastState = &lastState
 
 	go func() {
@@ -36,8 +51,7 @@ func (c *CachedChecker) Start(interval time.Duration) {
 			case <-c.done:
 				return
 			case t := <-ticker.C:
-				currentHealth := c.compositeChecker.Check()
-				currentHealth.AddInfo("ts", t.Format(time.RFC3339))
+				currentHealth := check(t)
 				lastState.Lock()
 				lastState.health = currentHealth
 				lastState.Unlock()
